@@ -1,26 +1,82 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --background: oklch(0.115 0.008 260);
+  --foreground: oklch(0.96 0.004 260);
+  --card: oklch(0.15 0.008 260);
+  --card-foreground: oklch(0.96 0.004 260);
+  --popover: oklch(0.16 0.008 260);
+  --popover-foreground: oklch(0.96 0.004 260);
+  --primary: oklch(0.79 0.15 155);
+  --primary-foreground: oklch(0.16 0.03 155);
+  --secondary: oklch(0.2 0.008 260);
+  --secondary-foreground: oklch(0.91 0.005 260);
+  --muted: oklch(0.19 0.008 260);
+  --muted-foreground: oklch(0.67 0.012 260);
+  --accent: oklch(0.22 0.012 260);
+  --accent-foreground: oklch(0.96 0.004 260);
+  --destructive: oklch(0.68 0.19 25);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 11%);
+  --ring: oklch(0.79 0.15 155);
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    @apply font-sans;
+    color-scheme: dark;
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground antialiased;
+    background-image: radial-gradient(
+      circle at 50% -15%,
+      oklch(0.22 0.02 260 / 35%),
+      transparent 38rem
+    );
+  }
+
+  button,
+  a,
+  input,
+  select {
+    @apply outline-offset-4;
+  }
 }
