@@ -1,6 +1,10 @@
-import { timingSafeEqual } from "node:crypto";
 import type { AnyBulkWriteOperation } from "mongodb";
-import { isCompetitionLevel } from "@/lib/competition";
+import {
+  getChallengePdfUrl,
+  isCompetitionLevel,
+  TOTAL_CHALLENGES,
+} from "@/lib/competition";
+import { isAdminAuthorized, isAdminTokenConfigured } from "@/lib/admin-auth";
 import {
   getChallengeCollection,
   type ChallengeDocument,
@@ -17,22 +21,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isAuthorized(request: Request): boolean {
-  const configuredToken = process.env.CHALLENGE_ADMIN_TOKEN;
-  if (!configuredToken || configuredToken.length < 32) return false;
-
-  const authorization = request.headers.get("authorization");
-  if (!authorization?.startsWith("Bearer ")) return false;
-
-  const providedToken = authorization.slice("Bearer ".length);
-  const expected = Buffer.from(configuredToken);
-  const provided = Buffer.from(providedToken);
-  return (
-    expected.length === provided.length &&
-    timingSafeEqual(expected, provided)
-  );
-}
-
 function parseChallenges(value: unknown): ChallengeInput[] {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error("El campo challenges debe ser una lista no vacía.");
@@ -45,18 +33,17 @@ function parseChallenges(value: unknown): ChallengeInput[] {
 
     const { level } = item;
     const challengeNumber = item.challengeNumber;
-    const expectedPdfUrl =
-      typeof challengeNumber === "number"
-        ? `/challenges/${level.toLowerCase()}-${challengeNumber}.pdf`
-        : "";
+    const expectedPdfUrl = getChallengePdfUrl(level);
 
     if (
       typeof challengeNumber !== "number" ||
       !Number.isInteger(challengeNumber) ||
       challengeNumber < 1 ||
-      challengeNumber > 6
+      challengeNumber > TOTAL_CHALLENGES
     ) {
-      throw new Error(`El desafío ${index + 1} debe tener un número entero entre 1 y 6.`);
+      throw new Error(
+        `El desafío ${index + 1} debe tener un número entero entre 1 y ${TOTAL_CHALLENGES}.`,
+      );
     }
     if (item.pdfUrl !== expectedPdfUrl) {
       throw new Error(
@@ -92,9 +79,13 @@ function parseChallenges(value: unknown): ChallengeInput[] {
       .filter((challenge) => challenge.level === level)
       .map((challenge) => challenge.challengeNumber)
       .sort((first, second) => first - second);
-    if (numbers.some((number, index) => number !== index + 1)) {
+    if (
+      numbers.length > 0 &&
+      (numbers.length !== TOTAL_CHALLENGES ||
+        numbers.some((number, index) => number !== index + 1))
+    ) {
       throw new Error(
-        `Los desafíos ${level} deben enviarse consecutivamente desde el número 1.`,
+        `Los ${TOTAL_CHALLENGES} desafíos ${level} deben enviarse consecutivamente desde el número 1.`,
       );
     }
   }
@@ -103,10 +94,8 @@ function parseChallenges(value: unknown): ChallengeInput[] {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  if (!isAuthorized(request)) {
-    const tokenConfigured =
-      typeof process.env.CHALLENGE_ADMIN_TOKEN === "string" &&
-      process.env.CHALLENGE_ADMIN_TOKEN.length >= 32;
+  if (!isAdminAuthorized(request)) {
+    const tokenConfigured = isAdminTokenConfigured();
     return Response.json(
       {
         message: tokenConfigured

@@ -2,9 +2,16 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Code2, LoaderCircle, Plus, Users } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowRight,
+  Code2,
+  LoaderCircle,
+  Plus,
+  Users,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -23,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import {
   getErrorMessage,
+  getChallengePdfUrl,
   parseRegistrationResponse,
   requestApi,
   TEAM_ID_STORAGE_KEY,
@@ -108,7 +116,7 @@ export default function Home() {
             <span className="text-muted-foreground">Programá sin límites.</span>
           </h1>
           <p className="mt-6 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
-            Una competencia, seis desafíos y una sola meta: resolverlos juntos.
+            Una competencia, cuatro desafíos y una sola meta: resolverlos juntos.
             Registrá a tu equipo para empezar.
           </p>
 
@@ -130,7 +138,7 @@ export default function Home() {
                   <Code2 aria-hidden="true" className="size-4" />
                 </span>
                 <div>
-                  <p className="text-sm font-medium">6 desafíos</p>
+                  <p className="text-sm font-medium">4 desafíos</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">De lógica y código</p>
                 </div>
               </CardContent>
@@ -176,6 +184,14 @@ export default function Home() {
                     <SelectItem value="Senior">Senior</SelectItem>
                   </SelectContent>
                 </Select>
+                <a
+                  href={getChallengePdfUrl(level)}
+                  download
+                  className={`${buttonVariants({ variant: "outline", size: "sm" })} h-9 gap-2`}
+                >
+                  <ArrowDownToLine aria-hidden="true" />
+                  Descargar todos los problemas
+                </a>
               </div>
 
               <div className="space-y-3">

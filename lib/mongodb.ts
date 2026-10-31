@@ -16,6 +16,7 @@ export interface TeamDocument extends Document {
   challengeStartedAt: Date;
   isFinished: boolean;
   splitTimes: TeamSplitTime[];
+  totalDurationMs?: number;
   finishTime?: Date;
 }
 

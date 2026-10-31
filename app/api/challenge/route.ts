@@ -1,3 +1,4 @@
+import { TOTAL_CHALLENGES } from "@/lib/competition";
 import {
   getChallengeCollection,
   getTeamCollection,
@@ -52,8 +53,11 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     const challenges = await getChallengeCollection();
-    const totalChallenges = await challenges.countDocuments({ level: team.level });
-    if (totalChallenges === 0) return challengeConfigurationError();
+    const totalChallenges = await challenges.countDocuments({
+      level: team.level,
+      challengeNumber: { $gte: 1, $lte: TOTAL_CHALLENGES },
+    });
+    if (totalChallenges !== TOTAL_CHALLENGES) return challengeConfigurationError();
 
     if (!team.isFinished) {
       const challenge = await challenges.findOne({
@@ -69,6 +73,9 @@ export async function GET(request: Request): Promise<Response> {
         level: team.level,
         challengeNumber: team.currentChallenge,
         totalChallenges,
+        startTime: team.startTime,
+        finishTime: null,
+        totalDurationMs: null,
         pdfUrl: challenge.pdfUrl,
         isFinished: false,
         splitTimes: team.splitTimes,
@@ -80,6 +87,9 @@ export async function GET(request: Request): Promise<Response> {
       level: team.level,
       challengeNumber: totalChallenges,
       totalChallenges,
+      startTime: team.startTime,
+      finishTime: team.finishTime ?? null,
+      totalDurationMs: team.totalDurationMs ?? null,
       pdfUrl: null,
       isFinished: true,
       splitTimes: team.splitTimes,
@@ -122,7 +132,11 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const challenges = await getChallengeCollection();
-    const totalChallenges = await challenges.countDocuments({ level: team.level });
+    const totalChallenges = await challenges.countDocuments({
+      level: team.level,
+      challengeNumber: { $gte: 1, $lte: TOTAL_CHALLENGES },
+    });
+    if (totalChallenges !== TOTAL_CHALLENGES) return challengeConfigurationError();
     const challenge = await challenges.findOne({
       level: team.level,
       challengeNumber: team.currentChallenge,
@@ -143,7 +157,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const now = new Date();
     const elapsedMs = Math.max(0, now.getTime() - team.challengeStartedAt.getTime());
-    const isLastChallenge = team.currentChallenge >= totalChallenges;
+    const isLastChallenge = team.currentChallenge >= TOTAL_CHALLENGES;
     const update = await teams.updateOne(
       {
         teamId: team.teamId,
@@ -156,6 +170,7 @@ export async function POST(request: Request): Promise<Response> {
           ? {
               isFinished: true,
               finishTime: now,
+              totalDurationMs: Math.max(0, now.getTime() - team.startTime.getTime()),
               splitTimes: [
                 ...team.splitTimes,
                 { challengeNumber: team.currentChallenge, elapsedMs },

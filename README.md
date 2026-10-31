@@ -24,33 +24,26 @@ Set `MONGODB_URI` in `.env.local` and in the Vercel project environment. The opt
 `MONGODB_DB` variable selects a database; when omitted, the database in the URI is used.
 The API creates a `teams` collection for registrations and competition progress.
 
-### Subir los PDF de las consignas
+### Archivos de problemas
 
-Guardá cada PDF dentro de `public/challenges/`, por ejemplo:
+Cada nivel tiene un único PDF con sus cuatro problemas. Guardá los archivos en
+`public/challenges/` como `junior-1.pdf` y `senior-1.pdf`.
 
 ```text
-public/
-└── challenges/
-    ├── junior-1.pdf
-    ├── junior-2.pdf
-    ├── senior-1.pdf
-    └── ...
+public/challenges/junior-1.pdf
+public/challenges/senior-1.pdf
 ```
 
-`public/` está en la raíz del proyecto. Si la carpeta `public/challenges/` todavía
-no existe, creala. Para probar en desarrollo, dejá el servidor corriendo y abrí
-`http://localhost:3000/challenges/junior-1.pdf`; debe mostrarse o descargarse el PDF.
-En MongoDB, el campo `pdfUrl` de ese desafío debe ser
-`/challenges/junior-1.pdf`. Para que funcione en Vercel, incluí el PDF en
-`public/challenges/` al desplegar el proyecto. Los archivos de esta carpeta son
-públicos: no guardes aquí documentos privados.
+La inscripción ofrece descargar el archivo del nivel elegido y `/dashboard`
+mantiene disponible el mismo enlace. Los archivos de `public/` son públicos: no
+guardes allí documentos privados.
 
-### Cargar las respuestas y asociarlas a los PDF
+### Cargar las respuestas de los desafíos
 
 Las respuestas correctas se guardan en MongoDB, en la colección `challenges`.
-Para cargarlas, enviá un JSON a `POST /api/challenges`. Cada objeto vincula el nivel,
-número, ruta del PDF y respuesta correcta. Los números deben comenzar en `1` y
-continuar sin saltos dentro de cada nivel enviado.
+Para cargarlas, enviá un JSON a `POST /api/challenges`. Cada nivel enviado debe
+incluir sus cuatro respuestas, numeradas consecutivamente del `1` al `4`. Los
+cuatro desafíos de un nivel apuntan al PDF único de ese nivel.
 
 ```json
 {
@@ -64,7 +57,19 @@ continuar sin saltos dentro de cada nivel enviado.
     {
       "level": "Junior",
       "challengeNumber": 2,
-      "pdfUrl": "/challenges/junior-2.pdf",
+      "pdfUrl": "/challenges/junior-1.pdf",
+      "answer": "REEMPLAZAR_POR_LA_RESPUESTA"
+    },
+    {
+      "level": "Junior",
+      "challengeNumber": 3,
+      "pdfUrl": "/challenges/junior-1.pdf",
+      "answer": "REEMPLAZAR_POR_LA_RESPUESTA"
+    },
+    {
+      "level": "Junior",
+      "challengeNumber": 4,
+      "pdfUrl": "/challenges/junior-1.pdf",
       "answer": "REEMPLAZAR_POR_LA_RESPUESTA"
     },
     {
@@ -72,33 +77,50 @@ continuar sin saltos dentro de cada nivel enviado.
       "challengeNumber": 1,
       "pdfUrl": "/challenges/senior-1.pdf",
       "answer": "REEMPLAZAR_POR_LA_RESPUESTA"
+    },
+    {
+      "level": "Senior",
+      "challengeNumber": 2,
+      "pdfUrl": "/challenges/senior-1.pdf",
+      "answer": "REEMPLAZAR_POR_LA_RESPUESTA"
+    },
+    {
+      "level": "Senior",
+      "challengeNumber": 3,
+      "pdfUrl": "/challenges/senior-1.pdf",
+      "answer": "REEMPLAZAR_POR_LA_RESPUESTA"
+    },
+    {
+      "level": "Senior",
+      "challengeNumber": 4,
+      "pdfUrl": "/challenges/senior-1.pdf",
+      "answer": "REEMPLAZAR_POR_LA_RESPUESTA"
     }
   ]
 }
 ```
 
-El ejemplo muestra los dos primeros desafíos Junior y el primero Senior. Enviá los
-doce objetos (Junior y Senior, desafíos del 1 al 6) para cargar todos los PDF de
-ejemplo, y reemplazá cada texto `REEMPLAZAR_POR_LA_RESPUESTA` por la solución real.
-Si cargás un nivel por separado, incluí todos sus desafíos desde el número `1`.
-Los reenvíos actualizan los desafíos existentes. El `pdfUrl` debe coincidir con el
-nombre del archivo en `public/challenges/`. La API compara respuestas sin distinguir
-mayúsculas de minúsculas y nunca las devuelve a los equipos.
+Reemplazá cada texto `REEMPLAZAR_POR_LA_RESPUESTA` por la solución real. Podés
+cargar Junior y Senior juntos o enviar los cuatro desafíos de un solo nivel. Los
+reenvíos actualizan los desafíos existentes. La API compara respuestas sin
+distinguir mayúsculas de minúsculas y nunca las devuelve a los equipos.
 
-#### Proteger y llamar el endpoint
+### Panel de administración y carga de respuestas
 
 Configurá `CHALLENGE_ADMIN_TOKEN` con un secreto aleatorio de al menos 32 caracteres,
-tanto en `.env.local` para desarrollo como en las variables de entorno del proyecto
-en Vercel. En `.env.local`, agregá `CHALLENGE_ADMIN_TOKEN=tu_secreto_generado`.
+tanto en `.env.local` como en las variables de entorno del proyecto en Vercel.
 Podés generar uno con:
 
 ```bash
 openssl rand -hex 32
 ```
 
-Guardá el JSON anterior, con las respuestas reales, en `challenge-config.json` y
-mandalo desde la raíz del proyecto. En esta terminal, exportá el mismo token que
-configuraste en `.env.local`:
+El panel privado `/admin` usa este token para mostrar todos los equipos agrupados
+por nivel, el desafío actual, el tiempo del desafío, el tiempo total y la hora de
+inicio. Se actualiza automáticamente. El mismo token protege la carga de respuestas.
+
+Para cargar respuestas, guardá el JSON con las soluciones reales en
+`challenge-config.json`, exportá el token y ejecutá desde la raíz del proyecto:
 
 ```bash
 export CHALLENGE_ADMIN_TOKEN="PEGA_AQUI_EL_TOKEN_GENERADO"
@@ -116,12 +138,15 @@ ni el archivo que contiene las respuestas al repositorio. Una carga correcta dev
 cuántos desafíos se insertaron y cuántos se actualizaron; datos incompletos o un
 token inválido producen un error explícito.
 
-Cada equipo ve el desafío que le corresponde en `/dashboard`: el PDF asociado con
-un botón de descarga y un único campo para enviar la respuesta. Al acertar, se
-registra el tiempo y aparece el siguiente desafío.
+Cada equipo ve en `/dashboard` el desafío que le corresponde, un enlace al PDF
+completo del nivel y un único campo para enviar la respuesta. Al acertar, se guarda
+en MongoDB el tiempo parcial y aparece el siguiente desafío. La base conserva la
+hora de inicio y, al completar el cuarto desafío, la hora de finalización; el tiempo
+total se calcula con esas marcas de tiempo.
 
-Las rutas restantes son `POST /api/register`, `GET /api/challenge?teamId=...`,
-`POST /api/challenge` y `GET /api/leaderboard?level=Junior|Senior`.
+Las rutas de competencia son `POST /api/register`, `GET /api/challenge?teamId=...`,
+`POST /api/challenge` y `GET /api/leaderboard?level=Junior|Senior`. El panel consulta
+`GET /api/admin/teams`, que requiere el token de administración.
 
 ### Retomar un equipo
 

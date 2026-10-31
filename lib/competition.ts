@@ -1,6 +1,7 @@
 export const TEAM_ID_STORAGE_KEY = "teamId";
 
 export const COMPETITION_LEVELS = ["Junior", "Senior"] as const;
+export const TOTAL_CHALLENGES = 4;
 
 export type CompetitionLevel = (typeof COMPETITION_LEVELS)[number];
 
@@ -20,9 +21,24 @@ export interface ChallengeState {
   level: CompetitionLevel;
   challengeNumber: number;
   totalChallenges: number;
+  startTime: string | number;
+  finishTime: string | number | null;
+  totalDurationMs: number | null;
   pdfUrl: string | null;
   isFinished: boolean;
   splitTimes: ChallengeSplit[];
+}
+
+export interface AdminTeamEntry {
+  teamName: string;
+  level: CompetitionLevel;
+  currentChallenge: number;
+  totalChallenges: number;
+  startTime: string | number;
+  challengeStartedAt: string | number;
+  finishTime: string | number | null;
+  totalDurationMs: number | null;
+  isFinished: boolean;
 }
 
 export interface AnswerSubmissionResult {
@@ -61,6 +77,10 @@ function asNumber(value: unknown, field: string): number {
 
 export function isCompetitionLevel(value: unknown): value is CompetitionLevel {
   return value === "Junior" || value === "Senior";
+}
+
+export function getChallengePdfUrl(level: CompetitionLevel): string {
+  return `/challenges/${level.toLowerCase()}-1.pdf`;
 }
 
 function asTimestamp(value: unknown, field: string): string | number {
@@ -154,6 +174,15 @@ export function parseChallengeState(payload: unknown): ChallengeState {
 
   const challengeNumber = asNumber(response.challengeNumber, "el desafío actual");
   const totalChallenges = asNumber(response.totalChallenges, "la cantidad de desafíos");
+  const startTime = asTimestamp(response.startTime, "el inicio de la competencia");
+  const finishTime =
+    response.finishTime === null
+      ? null
+      : asTimestamp(response.finishTime, "el final de la competencia");
+  const totalDurationMs =
+    response.totalDurationMs === null || response.totalDurationMs === undefined
+      ? null
+      : asNumber(response.totalDurationMs, "el tiempo total");
   if (
     !Number.isInteger(challengeNumber) ||
     !Number.isInteger(totalChallenges) ||
@@ -162,16 +191,76 @@ export function parseChallengeState(payload: unknown): ChallengeState {
   ) {
     throw new Error("La respuesta de la API incluye un progreso de desafíos inválido.");
   }
+  if (response.isFinished !== (finishTime !== null)) {
+    throw new Error("La respuesta de la API incluye un estado de finalización inválido.");
+  }
+  if (totalDurationMs !== null && totalDurationMs < 0) {
+    throw new Error("La respuesta de la API incluye un tiempo total inválido.");
+  }
 
   return {
     teamName: asString(response.teamName, "el nombre del equipo"),
     level: response.level,
     challengeNumber,
     totalChallenges,
+    startTime,
+    finishTime,
+    totalDurationMs,
     pdfUrl: response.pdfUrl,
     isFinished: response.isFinished,
     splitTimes,
   };
+}
+
+export function parseAdminTeams(payload: unknown): AdminTeamEntry[] {
+  const response = asRecord(payload, "el panel de administración");
+  if (!Array.isArray(response.teams)) {
+    throw new Error("La respuesta de administración no incluye la lista de equipos.");
+  }
+
+  return response.teams.map((item: unknown): AdminTeamEntry => {
+    const team = asRecord(item, "el panel de administración");
+    if (!isCompetitionLevel(team.level)) {
+      throw new Error("La respuesta de administración incluye un nivel inválido.");
+    }
+    if (typeof team.isFinished !== "boolean") {
+      throw new Error("La respuesta de administración incluye un estado inválido.");
+    }
+    const currentChallenge = asNumber(team.currentChallenge, "el desafío actual");
+    const totalChallenges = asNumber(team.totalChallenges, "la cantidad de desafíos");
+    const totalDurationMs =
+      team.totalDurationMs === null || team.totalDurationMs === undefined
+        ? null
+        : asNumber(team.totalDurationMs, "el tiempo total");
+    if (
+      !Number.isInteger(currentChallenge) ||
+      !Number.isInteger(totalChallenges) ||
+      currentChallenge < 1 ||
+      totalChallenges !== TOTAL_CHALLENGES ||
+      currentChallenge > totalChallenges ||
+      (totalDurationMs !== null && totalDurationMs < 0)
+    ) {
+      throw new Error("La respuesta de administración incluye un progreso inválido.");
+    }
+
+    return {
+      teamName: asString(team.teamName, "el nombre del equipo"),
+      level: team.level,
+      currentChallenge,
+      totalChallenges,
+      startTime: asTimestamp(team.startTime, "el inicio de la competencia"),
+      challengeStartedAt: asTimestamp(
+        team.challengeStartedAt,
+        "el inicio del desafío",
+      ),
+      finishTime:
+        team.finishTime === null
+          ? null
+          : asTimestamp(team.finishTime, "el final de la competencia"),
+      totalDurationMs,
+      isFinished: team.isFinished,
+    };
+  });
 }
 
 export function parseAnswerSubmissionResult(

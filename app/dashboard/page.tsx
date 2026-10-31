@@ -140,6 +140,12 @@ export default function DashboardPage() {
   if (!challenge) return null;
 
   if (challenge.isFinished) {
+    const totalDurationMs =
+      challenge.totalDurationMs ??
+      (challenge.finishTime === null
+        ? 0
+        : new Date(challenge.finishTime).getTime() -
+          new Date(challenge.startTime).getTime());
     return (
       <main className="mx-auto flex w-full max-w-5xl flex-1 items-center px-5 py-12 sm:px-8">
         <Card className="mx-auto w-full max-w-2xl border-primary/20">
@@ -150,7 +156,7 @@ export default function DashboardPage() {
             <Badge variant="outline" className="border-primary/30 text-primary">COMPETENCIA COMPLETADA</Badge>
             <CardTitle className="mt-2 text-3xl tracking-tight">¡Felicitaciones, {challenge.teamName}!</CardTitle>
             <CardDescription className="max-w-md">
-              Resolvieron todos los desafíos. Este es el resumen de sus tiempos parciales.
+              Resolvieron todos los desafíos en {formatDuration(totalDurationMs)}.
             </CardDescription>
           </CardHeader>
           <CardContent className="px-6 pb-8 pt-6 sm:px-10">
@@ -175,6 +181,12 @@ export default function DashboardPage() {
             )}
             <p className="mt-5 text-center text-xs text-muted-foreground">
               Nivel {challenge.level} · {challenge.splitTimes.length} desafíos completados
+            </p>
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              Inicio: {new Date(challenge.startTime).toLocaleString("es-AR")} · Finalización:{" "}
+              {challenge.finishTime === null
+                ? "sin registrar"
+                : new Date(challenge.finishTime).toLocaleString("es-AR")}
             </p>
           </CardContent>
         </Card>
@@ -239,7 +251,7 @@ export default function DashboardPage() {
           <section>
             <h2 className="text-lg font-medium tracking-tight">Consigna</h2>
             <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-              Descarguen el enunciado del desafío y trabajen en equipo para encontrar la respuesta.
+              Descarguen el archivo con todos los problemas de su nivel y trabajen en equipo para encontrar la respuesta.
             </p>
             <a
               href={challenge.pdfUrl ?? undefined}
@@ -247,10 +259,10 @@ export default function DashboardPage() {
               target="_blank"
               rel="noreferrer"
               className={`${buttonVariants({ variant: "outline", size: "lg" })} mt-6 h-11 gap-2`}
-              aria-label={`Descargar PDF del desafío ${challenge.challengeNumber}`}
+              aria-label={`Descargar todos los problemas del nivel ${challenge.level}`}
             >
               <ArrowDownToLine aria-hidden="true" />
-              Descargar consigna PDF
+              Descargar todos los problemas
             </a>
           </section>
 
