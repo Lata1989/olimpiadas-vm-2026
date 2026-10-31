@@ -1,4 +1,5 @@
 export const TEAM_ID_STORAGE_KEY = "teamId";
+export const ADMIN_TOKEN_SESSION_KEY = "olimpiadas-vm-admin-token";
 
 export const COMPETITION_LEVELS = ["Junior", "Senior"] as const;
 export const TOTAL_CHALLENGES = 4;

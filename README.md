@@ -38,6 +38,29 @@ La inscripción ofrece descargar el archivo del nivel elegido y `/dashboard`
 mantiene disponible el mismo enlace. Los archivos de `public/` son públicos: no
 guardes allí documentos privados.
 
+### Logos de la página de inicio
+
+Guardá los dos archivos PNG en `public/logos/` con estos nombres; la página los
+muestra automáticamente:
+
+```text
+public/logos/logo-1.png
+public/logos/logo-2.png
+```
+
+### Registros para probar
+
+Las respuestas cargadas en MongoDB para probar el avance son:
+
+| Nivel | Desafío 1 | Desafío 2 | Desafío 3 | Desafío 4 |
+|---|---:|---:|---:|---:|
+| Junior | `30132` | `38` | `18` | `60` |
+| Senior | `18` | `60` | `1674` | `130` |
+
+Las respuestas de los desafíos de autómatas son provisionales: los resultados de
+los ejemplos de los PDFs no coinciden con las reglas escritas. Revisalos antes de
+usar la competencia oficialmente.
+
 ### Cargar las respuestas de los desafíos
 
 Las respuestas correctas se guardan en MongoDB, en la colección `challenges`.
@@ -117,7 +140,10 @@ openssl rand -hex 32
 
 El panel privado `/admin` usa este token para mostrar todos los equipos agrupados
 por nivel, el desafío actual, el tiempo del desafío, el tiempo total y la hora de
-inicio. Se actualiza automáticamente. El mismo token protege la carga de respuestas.
+inicio. Actualizá los datos con F5 o con el botón **Actualizar**. La tabla de
+posiciones privada se abre desde el panel autenticado; la API también exige el
+token. La sesión se conserva en la pestaña actual para que F5 no te pida ingresar
+de nuevo. El mismo token protege la carga de respuestas.
 
 Para cargar respuestas, guardá el JSON con las soluciones reales en
 `challenge-config.json`, exportá el token y ejecutá desde la raíz del proyecto:

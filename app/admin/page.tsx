@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Clock3, LoaderCircle, LogOut, RefreshCw, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import {
+  Clock3,
+  LoaderCircle,
+  LogOut,
+  RefreshCw,
+  Trophy,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import {
   COMPETITION_LEVELS,
+  ADMIN_TOKEN_SESSION_KEY,
   formatDuration,
   getErrorMessage,
   parseAdminTeams,
@@ -54,6 +62,7 @@ export default function AdminPage() {
   const [now, setNow] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSessionReady, setIsSessionReady] = useState(false);
   const [error, setError] = useState("");
 
   const loadTeams = useCallback(async (token: string) => {
@@ -66,22 +75,34 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (!adminToken) return;
+    void Promise.resolve().then(async () => {
+      const savedToken = window.sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY);
+      if (savedToken) {
+        setAdminToken(savedToken);
+        setNow(Date.now());
+        setIsLoading(true);
+        try {
+          await loadTeams(savedToken);
+        } catch (loadError: unknown) {
+          setError(
+            getErrorMessage(loadError, "No se pudo cargar el panel de equipos."),
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      setIsSessionReady(true);
+    });
+  }, [loadTeams]);
 
+  useEffect(() => {
+    if (!adminToken) return;
     const clockInterval = window.setInterval(() => setNow(Date.now()), 1000);
-    const refreshInterval = window.setInterval(() => {
-      void loadTeams(adminToken).catch((loadError: unknown) => {
-        setError(
-          getErrorMessage(loadError, "No se pudo actualizar el panel de equipos."),
-        );
-      });
-    }, 15000);
 
     return () => {
       window.clearInterval(clockInterval);
-      window.clearInterval(refreshInterval);
     };
-  }, [adminToken, loadTeams]);
+  }, [adminToken]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -95,6 +116,7 @@ export default function AdminPage() {
     setError("");
     try {
       await loadTeams(token);
+      window.sessionStorage.setItem(ADMIN_TOKEN_SESSION_KEY, token);
       setAdminToken(token);
       setTokenInput("");
       setNow(Date.now());
@@ -117,6 +139,7 @@ export default function AdminPage() {
   }
 
   function closeSession() {
+    window.sessionStorage.removeItem(ADMIN_TOKEN_SESSION_KEY);
     setAdminToken("");
     setTeams([]);
     setError("");
@@ -126,18 +149,24 @@ export default function AdminPage() {
     <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-10 sm:px-8 sm:py-14">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-xs tracking-wide text-muted-foreground">
-            VM / 2026
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
             Seguimiento de equipos
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Progreso y tiempos de todos los equipos, agrupados por nivel.
+            Actualizá el progreso con el botón o presionando F5.
           </p>
         </div>
         {adminToken && (
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-2"
+              render={<Link href="/leaderboard" />}
+            >
+              <Trophy aria-hidden="true" />
+              Posiciones
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -165,12 +194,14 @@ export default function AdminPage() {
         )}
       </div>
 
-      {!adminToken ? (
+      {!isSessionReady ? (
+        <div className="mx-auto w-full max-w-lg space-y-3">
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
+        </div>
+      ) : !adminToken ? (
         <Card className="mx-auto w-full max-w-lg border-border/80">
           <CardHeader>
-            <div className="mb-2 flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <ShieldCheck aria-hidden="true" className="size-5" />
-            </div>
             <CardTitle>Acceso de administración</CardTitle>
             <CardDescription>
               Ingresá el token configurado en el servidor para consultar el avance.
@@ -218,7 +249,7 @@ export default function AdminPage() {
               {error}
             </p>
           )}
-          {isRefreshing && teams.length === 0 ? (
+          {(isLoading || (isRefreshing && teams.length === 0)) ? (
             <div className="space-y-6">
               <Skeleton className="h-72 w-full rounded-xl" />
               <Skeleton className="h-72 w-full rounded-xl" />
@@ -258,9 +289,6 @@ function LevelTeamsCard({
       <CardHeader className="flex flex-row items-center justify-between border-b border-border/70 px-5 py-5 sm:px-7">
         <div>
           <CardTitle className="text-lg tracking-tight">Nivel {level}</CardTitle>
-          <CardDescription className="mt-1">
-            Avance y tiempos registrados para cada equipo.
-          </CardDescription>
         </div>
         <Badge variant="secondary" className="font-mono text-xs">
           {teams.length} {teams.length === 1 ? "equipo" : "equipos"}

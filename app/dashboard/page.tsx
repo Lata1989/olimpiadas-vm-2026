@@ -161,11 +161,11 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="px-6 pb-8 pt-6 sm:px-10">
             {challenge.splitTimes.length > 0 ? (
-              <div className="divide-y divide-border rounded-xl border border-border/80">
+              <div className="divide-y divide-border border-y border-border/70">
                 {challenge.splitTimes.map((split) => (
                   <div key={split.challengeNumber} className="flex items-center justify-between px-4 py-3.5">
                     <span className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <span className="flex size-7 items-center justify-center rounded-md bg-muted text-xs font-medium text-foreground">
+                      <span className="font-mono text-xs text-foreground">
                         {String(split.challengeNumber).padStart(2, "0")}
                       </span>
                       Desafío {split.challengeNumber}
@@ -175,7 +175,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <p className="rounded-lg border border-border px-4 py-5 text-center text-sm text-muted-foreground">
+              <p className="px-4 py-5 text-center text-sm text-muted-foreground">
                 No hay tiempos parciales disponibles para mostrar.
               </p>
             )}
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                 </span>
               </CardTitle>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               <Timer aria-hidden="true" className="size-4" />
               <span>Nivel {challenge.level}</span>
             </span>
@@ -266,9 +266,9 @@ export default function DashboardPage() {
             </a>
           </section>
 
-          <section className="rounded-xl border border-border/80 bg-background/60 p-5 sm:p-6">
+          <section className="border-t border-border/70 pt-6 md:border-l md:border-t-0 md:pl-8 md:pt-0">
             <div className="mb-5 flex items-start gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
+              <span className="mt-0.5 shrink-0 text-primary">
                 <Check aria-hidden="true" className="size-4" />
               </span>
               <div>

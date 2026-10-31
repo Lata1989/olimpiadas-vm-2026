@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDown, LoaderCircle, RefreshCw, Trophy } from "lucide-react";
+import Link from "next/link";
+import {
+  ArrowDown,
+  LoaderCircle,
+  RefreshCw,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import {
   COMPETITION_LEVELS,
+  ADMIN_TOKEN_SESSION_KEY,
   formatDuration,
   getErrorMessage,
   parseLeaderboard,
@@ -34,14 +40,19 @@ export default function LeaderboardPage() {
   const [level, setLevel] = useState<CompetitionLevel>("Junior");
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [adminToken, setAdminToken] = useState("");
+  const [isSessionReady, setIsSessionReady] = useState(false);
   const [error, setError] = useState("");
 
-  const loadEntries = useCallback(async () => {
+  const loadEntries = useCallback(async (token: string) => {
     try {
       const results = await Promise.all(
         COMPETITION_LEVELS.map(async (competitionLevel) => {
           const query = new URLSearchParams({ level: competitionLevel });
-          const response = await requestApi(`/api/leaderboard?${query.toString()}`);
+          const response = await requestApi(
+            `/api/leaderboard?${query.toString()}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
           return parseLeaderboard(response);
         }),
       );
@@ -55,13 +66,19 @@ export default function LeaderboardPage() {
   }, []);
 
   useEffect(() => {
-    void Promise.resolve().then(loadEntries);
+    void Promise.resolve().then(() => {
+      const token = window.sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY) ?? "";
+      setAdminToken(token);
+      setIsSessionReady(true);
+      if (token) void loadEntries(token);
+      else setIsLoading(false);
+    });
   }, [loadEntries]);
 
   function refreshEntries() {
     setIsLoading(true);
     setError("");
-    void loadEntries();
+    void loadEntries(adminToken);
   }
 
   const visibleEntries = useMemo(
@@ -69,16 +86,46 @@ export default function LeaderboardPage() {
     [entries, level],
   );
 
+  if (!isSessionReady) {
+    return (
+      <main className="mx-auto flex w-full max-w-5xl flex-1 px-5 py-12 sm:px-8">
+        <div className="w-full space-y-4">
+          <Skeleton className="h-12 w-72" />
+          <Skeleton className="h-72 w-full rounded-xl" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!adminToken) {
+    return (
+      <main className="mx-auto flex w-full max-w-5xl flex-1 items-center px-5 py-12 sm:px-8">
+        <Card className="mx-auto w-full max-w-lg border-border/80">
+          <CardHeader>
+            <CardTitle>Tabla de posiciones privada</CardTitle>
+            <CardDescription>
+              Ingresá primero al panel de administración para consultar esta tabla.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" render={<Link href="/admin" />}>
+              Ir a administración
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 sm:px-8 sm:py-14">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-xs tracking-wide text-muted-foreground">VM / 2026</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
             Tabla de posiciones
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Los equipos que completaron todos los desafíos, ordenados por tiempo total.
+            Los equipos finalistas, ordenados por tiempo total.
           </p>
         </div>
         <Button
@@ -111,7 +158,7 @@ export default function LeaderboardPage() {
             </Badge>
           </div>
 
-          <div className="mt-5 flex w-fit rounded-lg border border-border bg-background/60 p-1">
+          <div className="mt-5 flex w-fit gap-5 border-b border-border">
             {COMPETITION_LEVELS.map((competitionLevel) => {
               const selected = level === competitionLevel;
               return (
@@ -120,10 +167,10 @@ export default function LeaderboardPage() {
                   type="button"
                   onClick={() => setLevel(competitionLevel)}
                   aria-pressed={selected}
-                  className={`h-8 rounded-md px-3 text-sm transition-colors ${
+                  className={`h-9 border-b-2 px-1 text-sm transition-colors ${
                     selected
-                      ? "bg-muted font-medium text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "border-primary font-medium text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {competitionLevel}
@@ -149,9 +196,6 @@ export default function LeaderboardPage() {
             </div>
           ) : visibleEntries.length === 0 ? (
             <div className="flex flex-col items-center px-6 py-16 text-center">
-              <span className="mb-4 flex size-11 items-center justify-center rounded-xl border border-border bg-muted/50 text-muted-foreground">
-                <Trophy aria-hidden="true" className="size-5" />
-              </span>
               <h2 className="text-sm font-medium">Todavía no hay equipos finalistas</h2>
               <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                 Cuando un equipo de nivel {level} complete todos los desafíos, aparecerá en esta lista.
