@@ -11,7 +11,7 @@ export function SiteHeader() {
           aria-label="Olimpiadas de Programación VM 2026, inicio"
         >
           <Image
-            src="/logos/Logo%20-%20Educacio%CC%81n%20blanco.png"
+            src="/logos/logo-educacion-blanco.png"
             alt="Educación"
             width={1200}
             height={272}
