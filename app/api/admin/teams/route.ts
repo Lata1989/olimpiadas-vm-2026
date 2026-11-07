@@ -31,6 +31,7 @@ export async function GET(request: Request): Promise<Response> {
             currentChallenge: 1,
             startTime: 1,
             challengeStartedAt: 1,
+            splitTimes: 1,
             finishTime: 1,
             totalDurationMs: 1,
             isFinished: 1,

@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { ArrowDownToLine, ArrowRight, LoaderCircle, Plus } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +29,6 @@ export default function Home() {
   const [members, setMembers] = useState([""]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [unavailableLogos, setUnavailableLogos] = useState<string[]>([]);
 
   function updateMember(index: number, value: string) {
     setMembers((currentMembers) =>
@@ -92,43 +90,14 @@ export default function Home() {
   return (
     <main className="flex flex-1 items-center px-5 py-10 sm:px-8 sm:py-14">
       <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1fr_0.9fr] lg:gap-20">
-        <section className="max-w-xl">
-          <div className="mb-12 flex h-16 items-center gap-10">
-            {[
-              { src: "/logos/logo-1.png", alt: "Primer logo" },
-              { src: "/logos/logo-2.png", alt: "Segundo logo" },
-            ].map((logo) =>
-              unavailableLogos.includes(logo.src) ? (
-                <span
-                  key={logo.src}
-                  className="text-xs text-muted-foreground/60"
-                  aria-label={`${logo.alt}: agregá ${logo.src}`}
-                >
-                  {logo.alt}
-                </span>
-              ) : (
-                <Image
-                  key={logo.src}
-                  src={logo.src}
-                  alt={logo.alt}
-                  width={144}
-                  height={64}
-                  className="max-h-16 w-36 object-contain object-left"
-                  onError={() =>
-                    setUnavailableLogos((current) => [...current, logo.src])
-                  }
-                />
-              ),
-            )}
-          </div>
-          <h1 className="text-4xl font-semibold tracking-[-0.05em] text-balance sm:text-5xl lg:text-6xl">
-            Olimpiadas de
-            <br />
-            <span className="text-primary">Programación</span>
-          </h1>
-          <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">
-            Competencia de programación por equipos. Elegí el nivel e inscribí a tu equipo.
+        <section className="max-w-2xl">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-primary sm:text-sm">
+            Villa María · Instituto Leibnitz
           </p>
+          <h1 className="text-4xl font-semibold leading-[1.08] tracking-[-0.05em] text-balance sm:text-5xl lg:text-6xl">
+            Olimpiadas regionales de programación
+            <span className="mt-2 block text-primary">2026</span>
+          </h1>
         </section>
 
         <section className="mx-auto w-full max-w-lg border-t border-border/70 pt-8 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">

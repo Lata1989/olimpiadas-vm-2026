@@ -30,7 +30,16 @@ export async function GET(request: Request): Promise<Response> {
     const finishedTeams = await teams
       .find(
         { level, isFinished: true, finishTime: { $exists: true } },
-        { projection: { _id: 0, teamName: 1, level: 1, startTime: 1, finishTime: 1 } },
+        {
+          projection: {
+            _id: 0,
+            teamName: 1,
+            level: 1,
+            startTime: 1,
+            finishTime: 1,
+            splitTimes: 1,
+          },
+        },
       )
       .toArray();
 

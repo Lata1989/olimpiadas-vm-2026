@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
-  Clock3,
   LoaderCircle,
   LogOut,
   RefreshCw,
@@ -104,6 +103,36 @@ export default function AdminPage() {
     };
   }, [adminToken]);
 
+  useEffect(() => {
+    if (!adminToken) return;
+
+    let active = true;
+    let requestPending = false;
+    const refreshAutomatically = () => {
+      if (!active || requestPending || document.visibilityState !== "visible") return;
+      requestPending = true;
+      void loadTeams(adminToken)
+        .catch((loadError: unknown) => {
+          if (active) {
+            setError(
+              getErrorMessage(loadError, "No se pudo actualizar el panel de equipos."),
+            );
+          }
+        })
+        .finally(() => {
+          requestPending = false;
+        });
+    };
+    const interval = window.setInterval(refreshAutomatically, 5000);
+    document.addEventListener("visibilitychange", refreshAutomatically);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshAutomatically);
+    };
+  }, [adminToken, loadTeams]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = tokenInput.trim();
@@ -153,7 +182,7 @@ export default function AdminPage() {
             Seguimiento de equipos
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Actualizá el progreso con el botón o presionando F5.
+            Seguimiento en vivo: los datos se actualizan automáticamente cada 5 segundos.
           </p>
         </div>
         {adminToken && (
@@ -309,8 +338,8 @@ function LevelTeamsCard({
               <TableHead className="text-xs uppercase tracking-wide text-muted-foreground">
                 Desafío
               </TableHead>
-              <TableHead className="text-right text-xs uppercase tracking-wide text-muted-foreground">
-                Tiempo del desafío
+              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground">
+                Tiempos por desafío
               </TableHead>
               <TableHead className="text-right text-xs uppercase tracking-wide text-muted-foreground">
                 Tiempo total
@@ -328,9 +357,9 @@ function LevelTeamsCard({
                   timestampInMilliseconds(finishTime) -
                     timestampInMilliseconds(team.startTime)
                 : elapsedSince(team.startTime, now);
-              const challengeElapsed = team.isFinished
-                ? null
-                : elapsedSince(team.challengeStartedAt, now);
+              const splitsByChallenge = new Map(
+                team.splitTimes.map((split) => [split.challengeNumber, split.elapsedMs]),
+              );
 
               return (
                 <TableRow
@@ -353,20 +382,37 @@ function LevelTeamsCard({
                       ? `${team.totalChallenges} de ${team.totalChallenges} completados`
                       : `Desafío ${team.currentChallenge} de ${team.totalChallenges}`}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm tabular-nums">
-                    <span className="inline-flex items-center justify-end gap-1.5">
-                      {challengeElapsed === null ? (
-                        "—"
-                      ) : (
-                        <>
-                          <Clock3
-                            aria-hidden="true"
-                            className="size-3.5 text-muted-foreground"
-                          />
-                          {formatDuration(challengeElapsed)}
-                        </>
-                      )}
-                    </span>
+                  <TableCell>
+                    <div className="grid min-w-40 grid-cols-2 gap-x-3 gap-y-1 font-mono text-xs tabular-nums">
+                      {Array.from(
+                        { length: team.totalChallenges },
+                        (_, index) => index + 1,
+                      ).map((challengeNumber) => {
+                        const splitMs = splitsByChallenge.get(challengeNumber);
+                        const isCurrentChallenge =
+                          !team.isFinished &&
+                          challengeNumber === team.currentChallenge;
+                        const elapsedMs =
+                          splitMs ??
+                          (isCurrentChallenge
+                            ? elapsedSince(team.challengeStartedAt, now)
+                            : null);
+
+                        return (
+                          <span
+                            key={challengeNumber}
+                            className={
+                              isCurrentChallenge
+                                ? "text-primary"
+                                : "text-muted-foreground"
+                            }
+                          >
+                            D{challengeNumber}{" "}
+                            {elapsedMs === null ? "—" : formatDuration(elapsedMs)}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm tabular-nums">
                     {formatDuration(totalElapsed)}

@@ -75,6 +75,28 @@ export default function LeaderboardPage() {
     });
   }, [loadEntries]);
 
+  useEffect(() => {
+    if (!adminToken) return;
+
+    let active = true;
+    let requestPending = false;
+    const refreshAutomatically = () => {
+      if (!active || requestPending || document.visibilityState !== "visible") return;
+      requestPending = true;
+      void loadEntries(adminToken).finally(() => {
+        requestPending = false;
+      });
+    };
+    const interval = window.setInterval(refreshAutomatically, 5000);
+    document.addEventListener("visibilitychange", refreshAutomatically);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshAutomatically);
+    };
+  }, [adminToken, loadEntries]);
+
   function refreshEntries() {
     setIsLoading(true);
     setError("");
@@ -125,7 +147,7 @@ export default function LeaderboardPage() {
             Tabla de posiciones
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Los equipos finalistas, ordenados por tiempo total.
+            Los equipos finalistas, ordenados por tiempo total. Se actualiza automáticamente cada 5 segundos.
           </p>
         </div>
         <Button
@@ -211,6 +233,9 @@ export default function LeaderboardPage() {
                   <TableHead className="text-xs uppercase tracking-wide text-muted-foreground">
                     Equipo
                   </TableHead>
+                  <TableHead className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Tiempos por desafío
+                  </TableHead>
                   <TableHead className="pr-6 text-right text-xs uppercase tracking-wide text-muted-foreground sm:pr-7">
                     Tiempo total
                   </TableHead>
@@ -235,6 +260,15 @@ export default function LeaderboardPage() {
                           PRIMERO
                         </Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="grid min-w-40 grid-cols-2 gap-x-3 gap-y-1 font-mono text-xs tabular-nums text-muted-foreground">
+                        {entry.splitTimes.map((split) => (
+                          <span key={split.challengeNumber}>
+                            D{split.challengeNumber} {formatDuration(split.elapsedMs)}
+                          </span>
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell className="pr-6 text-right font-mono text-sm tabular-nums sm:pr-7">
                       <span className="inline-flex items-center justify-end gap-2">

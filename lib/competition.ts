@@ -35,6 +35,7 @@ export interface AdminTeamEntry {
   level: CompetitionLevel;
   currentChallenge: number;
   totalChallenges: number;
+  splitTimes: ChallengeSplit[];
   startTime: string | number;
   challengeStartedAt: string | number;
   finishTime: string | number | null;
@@ -53,6 +54,7 @@ export interface LeaderboardEntry {
   startTime: string | number;
   finishTime: string | number;
   durationMs: number;
+  splitTimes: ChallengeSplit[];
 }
 
 function asRecord(value: unknown, context: string): Record<string, unknown> {
@@ -92,6 +94,31 @@ function asTimestamp(value: unknown, field: string): string | number {
 
 function timestampToMilliseconds(value: string | number): number {
   return typeof value === "number" ? value : Date.parse(value);
+}
+
+function parseChallengeSplits(
+  value: unknown,
+  totalChallenges: number,
+  context: string,
+): ChallengeSplit[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`La respuesta de ${context} no incluye los tiempos parciales.`);
+  }
+
+  return value.map((item: unknown): ChallengeSplit => {
+    const split = asRecord(item, "tiempos parciales");
+    const challengeNumber = asNumber(split.challengeNumber, "el número de desafío");
+    const elapsedMs = asNumber(split.elapsedMs, "el tiempo parcial");
+    if (
+      !Number.isInteger(challengeNumber) ||
+      challengeNumber < 1 ||
+      challengeNumber > totalChallenges ||
+      elapsedMs < 0
+    ) {
+      throw new Error("La respuesta de la API incluye un tiempo parcial inválido.");
+    }
+    return { challengeNumber, elapsedMs };
+  });
 }
 
 export async function requestApi(
@@ -159,22 +186,9 @@ export function parseChallengeState(payload: unknown): ChallengeState {
   ) {
     throw new Error("La respuesta de la API no incluye el PDF del desafío actual.");
   }
-  if (!Array.isArray(response.splitTimes)) {
-    throw new Error("La respuesta de la API no incluye los tiempos parciales.");
-  }
-
-  const splitTimes = response.splitTimes.map((item: unknown): ChallengeSplit => {
-    const split = asRecord(item, "tiempos parciales");
-    const challengeNumber = asNumber(split.challengeNumber, "el número de desafío");
-    const elapsedMs = asNumber(split.elapsedMs, "el tiempo parcial");
-    if (!Number.isInteger(challengeNumber) || challengeNumber < 1 || elapsedMs < 0) {
-      throw new Error("La respuesta de la API incluye un tiempo parcial inválido.");
-    }
-    return { challengeNumber, elapsedMs };
-  });
-
   const challengeNumber = asNumber(response.challengeNumber, "el desafío actual");
   const totalChallenges = asNumber(response.totalChallenges, "la cantidad de desafíos");
+  const splitTimes = parseChallengeSplits(response.splitTimes, totalChallenges, "el desafío");
   const startTime = asTimestamp(response.startTime, "el inicio de la competencia");
   const finishTime =
     response.finishTime === null
@@ -229,6 +243,11 @@ export function parseAdminTeams(payload: unknown): AdminTeamEntry[] {
     }
     const currentChallenge = asNumber(team.currentChallenge, "el desafío actual");
     const totalChallenges = asNumber(team.totalChallenges, "la cantidad de desafíos");
+    const splitTimes = parseChallengeSplits(
+      team.splitTimes,
+      totalChallenges,
+      "el panel de administración",
+    );
     const totalDurationMs =
       team.totalDurationMs === null || team.totalDurationMs === undefined
         ? null
@@ -249,6 +268,7 @@ export function parseAdminTeams(payload: unknown): AdminTeamEntry[] {
       level: team.level,
       currentChallenge,
       totalChallenges,
+      splitTimes,
       startTime: asTimestamp(team.startTime, "el inicio de la competencia"),
       challengeStartedAt: asTimestamp(
         team.challengeStartedAt,
@@ -304,7 +324,18 @@ export function parseLeaderboard(payload: unknown): LeaderboardEntry[] {
       throw new Error(`El tiempo registrado para ${teamName} no es válido.`);
     }
 
-    return [{ teamName, level: entry.level, startTime, finishTime, durationMs }];
+    return [{
+      teamName,
+      level: entry.level,
+      startTime,
+      finishTime,
+      durationMs,
+      splitTimes: parseChallengeSplits(
+        entry.splitTimes,
+        TOTAL_CHALLENGES,
+        "la tabla de posiciones",
+      ),
+    }];
   });
 }
 

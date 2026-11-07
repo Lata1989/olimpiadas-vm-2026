@@ -33,24 +33,24 @@
 }
 
 :root {
-  --background: oklch(0.105 0.018 252);
+  --background: oklch(0.11 0.025 252);
   --foreground: oklch(0.96 0.008 242);
-  --card: oklch(0.145 0.022 252);
+  --card: oklch(0.15 0.03 252);
   --card-foreground: oklch(0.96 0.008 242);
-  --popover: oklch(0.16 0.024 252);
+  --popover: oklch(0.17 0.035 252);
   --popover-foreground: oklch(0.96 0.008 242);
-  --primary: oklch(0.76 0.16 72);
-  --primary-foreground: oklch(0.2 0.035 55);
-  --secondary: oklch(0.2 0.024 252);
+  --primary: oklch(0.74 0.18 48);
+  --primary-foreground: oklch(0.2 0.035 35);
+  --secondary: oklch(0.23 0.055 252);
   --secondary-foreground: oklch(0.92 0.01 242);
-  --muted: oklch(0.19 0.022 252);
+  --muted: oklch(0.2 0.032 252);
   --muted-foreground: oklch(0.68 0.018 242);
-  --accent: oklch(0.23 0.032 252);
+  --accent: oklch(0.3 0.075 252);
   --accent-foreground: oklch(0.96 0.008 242);
   --destructive: oklch(0.68 0.19 25);
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 11%);
-  --ring: oklch(0.76 0.16 72);
+  --ring: oklch(0.74 0.18 48);
   --radius: 0.85rem;
 }
 
@@ -66,7 +66,9 @@
 
   body {
     @apply min-h-screen bg-background text-foreground antialiased;
-    background-image: none;
+    background-image:
+      radial-gradient(ellipse at 10% 0%, oklch(0.25 0.07 252 / 28%), transparent 36rem),
+      radial-gradient(ellipse at 90% 0%, oklch(0.22 0.08 48 / 12%), transparent 32rem);
   }
 
   button,
